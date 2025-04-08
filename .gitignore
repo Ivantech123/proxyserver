@@ -1,0 +1,31 @@
+# Certificates and keys
+certs/*.key
+certs/*.crt
+certs/*.pem
+
+# Logs
+logs/*
+*.log
+
+# Environment variables
+.env
+
+# Generated proxy lists
+config/proxies.txt
+
+# Docker volumes
+data/
+
+# Windows-specific
+Thumbs.db
+Desktop.ini
+
+# IDE-specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+temp/
