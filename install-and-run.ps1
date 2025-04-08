@@ -1,10 +1,19 @@
-# Скрипт установки и настройки прокси-сервера
-# Запускать от имени администратора
+# Proxy server installation and setup script
+# Must be run as Administrator
 
-# Обработка ошибок
+# Set error handling
 $ErrorActionPreference = "Stop"
 
-# Функция для отображения прогресса
+# Check if running as administrator
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Host "Error: This script must be run as Administrator" -ForegroundColor Red
+    Write-Host "Please right-click on PowerShell and select 'Run as Administrator'" -ForegroundColor Red
+    pause
+    exit 1
+}
+
+# Function for progress display
 function Show-Progress {
     param(
         [string]$Activity,
@@ -14,52 +23,62 @@ function Show-Progress {
     Write-Progress -Activity $Activity -PercentComplete $PercentComplete -Status $Status
 }
 
-# Функция для вывода статуса
+# Function for status output
 function Write-Status {
-    param($Message, $Type = "Info")
-    switch ($Type) {
-        "Info" { $Color = "Green" }
-        "Warning" { $Color = "Yellow" }
-        "Error" { $Color = "Red" }
-    }
-    Write-Host "==> $Message" -ForegroundColor $Color
+    param(
+        [string]$Message,
+        [string]$Type = "Info"
+    )
+    
+    Write-Host "==> $Message" -ForegroundColor $(switch ($Type) {
+        "Info" { "Green" }
+        "Warning" { "Yellow" }
+        "Error" { "Red" }
+        default { "White" }
+    })
 }
 
 # Проверка системных требований
 function Test-SystemRequirements {
-    Write-Status "Проверка системных требований..." "Info"
-    Show-Progress -Activity "Проверка системы" -PercentComplete 0 -Status "Проверка CPU..."
+    Write-Status "Checking system requirements..." "Info"
+    Show-Progress -Activity "System Check" -PercentComplete 0 -Status "Checking CPU..."
     
-    # Проверка ядер CPU
+    # Check CPU cores
     $cpuCores = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
     if ($cpuCores -lt 2) {
-        Write-Status "Внимание: Меньше 2 ядер CPU ($cpuCores ядер)" "Warning"
+        Write-Status "Warning: Less than 2 CPU cores ($cpuCores cores)" "Warning"
+    } else {
+        Write-Status "CPU cores: $cpuCores" "Info"
     }
     
-    Show-Progress -Activity "Проверка системы" -PercentComplete 33 -Status "Проверка RAM..."
+    Show-Progress -Activity "System Check" -PercentComplete 33 -Status "Checking RAM..."
     
-    # Проверка RAM
+    # Check RAM
     $totalRAM = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
     if ($totalRAM -lt 2) {
-        Write-Status "Внимание: Меньше 2GB RAM ($totalRAM GB)" "Warning"
+        Write-Status "Warning: Less than 2GB RAM ($totalRAM GB)" "Warning"
+    } else {
+        Write-Status "RAM: $totalRAM GB" "Info"
     }
     
-    Show-Progress -Activity "Проверка системы" -PercentComplete 66 -Status "Проверка места на диске..."
+    Show-Progress -Activity "System Check" -PercentComplete 66 -Status "Checking disk space..."
     
-    # Проверка места на диске
+    # Check disk space
     $disk = Get-PSDrive C
     $freeSpaceGB = [math]::Round($disk.Free / 1GB, 2)
     if ($freeSpaceGB -lt 40) {
-        Write-Status "Внимание: Меньше 40GB свободного места ($freeSpaceGB GB)" "Warning"
+        Write-Status "Warning: Less than 40GB free space ($freeSpaceGB GB)" "Warning"
+    } else {
+        Write-Status "Free disk space: $freeSpaceGB GB" "Info"
     }
     
-    Show-Progress -Activity "Проверка системы" -PercentComplete 100 -Status "Завершено"
+    Show-Progress -Activity "System Check" -PercentComplete 100 -Status "Complete"
     Start-Sleep -Seconds 1
 }
 
-# Проверка зависимостей
+# Check dependencies
 function Test-Dependencies {
-    Write-Status "Проверка необходимого ПО..." "Info"
+    Write-Status "Checking required software..." "Info"
     $deps = @{
         "Docker" = { Get-Command docker -ErrorAction SilentlyContinue }
         "Git" = { Get-Command git -ErrorAction SilentlyContinue }
@@ -72,14 +91,20 @@ function Test-Dependencies {
     foreach ($dep in $deps.GetEnumerator()) {
         $i++
         $percent = ($i / $deps.Count) * 100
-        Show-Progress -Activity "Проверка зависимостей" -PercentComplete $percent -Status "Проверка $($dep.Key)..."
+        Show-Progress -Activity "Checking Dependencies" -PercentComplete $percent -Status "Checking $($dep.Key)..."
         
         if (-not (& $dep.Value)) {
             $missing += $dep.Key
-            Write-Status "$($dep.Key) не установлен" "Warning"
+            Write-Status "$($dep.Key) is not installed" "Warning"
         } else {
-            Write-Status "$($dep.Key) установлен" "Info"
+            Write-Status "$($dep.Key) is installed" "Info"
         }
+    }
+    
+    if ($missing.Count -eq 0) {
+        Write-Status "All dependencies are installed" "Info"
+    } else {
+        Write-Status "Missing dependencies: $($missing -join ', ')" "Warning"
     }
     
     return $missing
@@ -88,6 +113,13 @@ function Test-Dependencies {
 # Установка зависимостей
 function Install-Dependencies {
     param($MissingDeps)
+    
+    if ($null -eq $MissingDeps -or $MissingDeps.Count -eq 0) {
+        Write-Status "No dependencies to install" "Info"
+        return
+    }
+    
+    Write-Status "Installing missing dependencies: $($MissingDeps -join ', ')" "Info"
     
     $total = $MissingDeps.Count
     $current = 0
@@ -192,53 +224,56 @@ function New-SSLCertificate {
 }
 
 function Start-ProxyServer {
-    Write-Status "Starting proxy server..."
+    Write-Status "Starting proxy server..." "Info"
     
     # Build and start containers
     docker-compose up --build -d
     
     # Generate initial proxies
-    Write-Status "Generating proxies..."
+    Write-Status "Generating proxies..." "Info"
     docker exec proxy-server /usr/local/bin/generate_proxies.sh 1000
     
     # Show status
-    Write-Status "Checking proxy server status..."
+    Write-Status "Checking proxy server status..." "Info"
     docker ps
     
     # Show proxy list
-    Write-Status "Available proxies:"
+    Write-Status "Available proxies:" "Info"
     docker exec proxy-server cat /etc/haproxy/proxies.txt
 }
 
 function Show-Menu {
     Clear-Host
-    Write-Host "=== Управление прокси-сервером ===" -ForegroundColor Cyan
-    Write-Host "1. Проверить систему и зависимости"
-    Write-Host "2. Установить недостающие компоненты"
-    Write-Host "3. Инициализировать Git репозиторий"
-    Write-Host "4. Установить и запустить прокси-сервер"
-    Write-Host "5. Остановить прокси-сервер"
-    Write-Host "6. Посмотреть список прокси"
-    Write-Host "7. Обновить учетные данные прокси"
-    Write-Host "8. Посмотреть логи"
-    Write-Host "9. Перезапустить прокси-сервер"
-    Write-Host "10. Выход"
+    Write-Host "=== Proxy Server Management ===" -ForegroundColor Cyan
+    Write-Host "1. Check system and dependencies"
+    Write-Host "2. Install missing components"
+    Write-Host "3. Initialize Git repository"
+    Write-Host "4. Install and start proxy server"
+    Write-Host "5. Stop proxy server"
+    Write-Host "6. View proxy list"
+    Write-Host "7. Update proxy credentials"
+    Write-Host "8. View logs"
+    Write-Host "9. Restart proxy server"
+    Write-Host "10. Exit"
     Write-Host
+    
+    $choice = Read-Host "Enter your choice (1-10)"
+    return $choice
 }
 
 function Update-ProxyCredentials {
-    Show-Progress -Activity "Обновление учетных данных" -PercentComplete 0 -Status "Ввод данных..."
+    Show-Progress -Activity "Updating Credentials" -PercentComplete 0 -Status "Entering data..."
     
-    $port = Read-Host "Введите номер порта"
-    $username = Read-Host "Введите новое имя пользователя"
-    $password = Read-Host "Введите новый пароль"
+    $port = Read-Host "Enter port number"
+    $username = Read-Host "Enter new username"
+    $password = Read-Host "Enter new password"
     
-    Show-Progress -Activity "Обновление учетных данных" -PercentComplete 50 -Status "Обновление..."
+    Show-Progress -Activity "Updating Credentials" -PercentComplete 50 -Status "Updating..."
     
     docker exec proxy-server /usr/local/bin/update_credentials.sh single $port $username $password
     
-    Show-Progress -Activity "Обновление учетных данных" -PercentComplete 100 -Status "Завершено"
-    Write-Status "Учетные данные обновлены" "Info"
+    Show-Progress -Activity "Updating Credentials" -PercentComplete 100 -Status "Complete"
+    Write-Status "Credentials updated successfully" "Info"
 }
 
 # Main script
@@ -246,8 +281,7 @@ try {
     $missingDeps = $null
     
     while ($true) {
-        Show-Menu
-        $choice = Read-Host "Введите ваш выбор (1-10)"
+        $choice = Show-Menu
         
         switch ($choice) {
             "1" {
@@ -257,7 +291,7 @@ try {
             }
             "2" {
                 if ($null -eq $missingDeps) {
-                    Write-Status "Сначала выполните проверку системы (Пункт 1)" "Warning"
+                    Write-Status "Please check system requirements first (Option 1)" "Warning"
                 } else {
                     Install-Dependencies $missingDeps
                 }
@@ -270,17 +304,17 @@ try {
             "4" {
                 New-SSLCertificate
                 Start-ProxyServer
-                Write-Status "Установка завершена!" "Info"
+                Write-Status "Installation complete!" "Info"
                 pause
             }
             "5" {
-                Show-Progress -Activity "Управление сервером" -PercentComplete 50 -Status "Остановка сервера..."
+                Show-Progress -Activity "Server Management" -PercentComplete 50 -Status "Stopping server..."
                 docker-compose down
-                Show-Progress -Activity "Управление сервером" -PercentComplete 100 -Status "Сервер остановлен"
+                Show-Progress -Activity "Server Management" -PercentComplete 100 -Status "Server stopped"
                 pause
             }
             "6" {
-                Write-Status "Текущий список прокси:" "Info"
+                Write-Status "Current proxy list:" "Info"
                 docker exec proxy-server cat /etc/haproxy/proxies.txt
                 pause
             }
@@ -289,29 +323,29 @@ try {
                 pause
             }
             "8" {
-                Write-Status "Последние записи:" "Info"
+                Write-Status "Recent logs:" "Info"
                 docker exec proxy-server tail -f /var/log/haproxy/access.log
                 pause
             }
             "9" {
-                Show-Progress -Activity "Управление сервером" -PercentComplete 50 -Status "Перезапуск сервера..."
+                Show-Progress -Activity "Server Management" -PercentComplete 50 -Status "Restarting server..."
                 docker-compose restart
-                Show-Progress -Activity "Управление сервером" -PercentComplete 100 -Status "Сервер перезапущен"
+                Show-Progress -Activity "Server Management" -PercentComplete 100 -Status "Server restarted"
                 pause
             }
             "10" {
-                Write-Status "Завершение работы..." "Info"
+                Write-Status "Exiting..." "Info"
                 exit
             }
             default {
-                Write-Status "Неверный выбор. Попробуйте еще раз." "Error"
+                Write-Status "Invalid choice. Please try again." "Error"
                 pause
             }
         }
     }
 }
 catch {
-    Write-Host "Error: $_" -ForegroundColor Red
-    Write-Host "Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+    Write-Status "An error occurred: $_" "Error"
+    Write-Status "Stack trace: $($_.ScriptStackTrace)" "Error"
     pause
 }
