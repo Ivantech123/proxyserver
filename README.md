@@ -6,11 +6,10 @@
 [![HTTP/2](https://img.shields.io/badge/HTTP%2F2-Supported-green.svg)]()
 [![PowerShell](https://img.shields.io/badge/PowerShell-Windows-blue.svg)]()
 [![Bash](https://img.shields.io/badge/Bash-Linux-orange.svg)]()
-[![Telegram Stars](https://img.shields.io/badge/Telegram%20Stars-Integrated-5682a3.svg)](https://core.telegram.org/api/stars)
 
 Прокси-сервер на базе Docker с поддержкой HTTP/2, автоматической генерацией прокси и возможностями управления.
 
-[Возможности](#-возможности) • [Установка](#-установка) • [Использование](#-использование) • [Telegram Stars](#-интеграция-с-telegram-stars) • [Обновления](#-история-обновлений)
+[Возможности](#-возможности) • [Установка](#-установка) • [Использование](#-использование)  • [Обновления](#-история-обновлений)
 
 </div>
 
