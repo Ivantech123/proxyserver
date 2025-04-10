@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления | Прокси-сервер{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-speedometer2 me-2"></i>Панель управления
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Статистика системы</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <tbody>
+                                    <tr>
+                                        <th><i class="bi bi-cpu me-2"></i>CPU:</th>
+                                        <td id="cpu-usage">{{ stats.cpu }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <th><i class="bi bi-memory me-2"></i>Память:</th>
+                                        <td id="memory-usage">{{ stats.memory }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th><i class="bi bi-hdd me-2"></i>Диск:</th>
+                                        <td id="disk-usage">{{ stats.disk }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th><i class="bi bi-clock-history me-2"></i>Время работы:</th>
+                                        <td id="uptime">{{ stats.uptime }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th><i class="bi bi-diagram-3 me-2"></i>Соединения:</th>
+                                        <td id="connections">{{ stats.connections }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <button id="restart-proxy" class="btn btn-warning">
+                                <i class="bi bi-arrow-repeat me-2"></i>Перезапустить прокси-сервер
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Мониторинг ресурсов</h4>
+                        <canvas id="resource-chart" width="400" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Генерация прокси
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="generate-proxies-form">
+                    <div class="mb-3">
+                        <label for="proxy-count" class="form-label">Количество прокси</label>
+                        <input type="number" class="form-control" id="proxy-count" name="count" min="1" max="1000" value="10" required>
+                        <div class="form-text">Укажите количество прокси для генерации (1-1000)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="base-port" class="form-label">Базовый порт</label>
+                        <input type="number" class="form-control" id="base-port" name="base_port" min="1024" max="65535" value="3128" required>
+                        <div class="form-text">Начальный порт для генерации прокси</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-plus-lg me-2"></i>Сгенерировать прокси
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-diagram-3 me-2"></i>Статистика прокси
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 id="active-proxies">{{ proxies|selectattr('status', 'equalto', 'active')|list|length }}</h3>
+                                <p class="text-success mb-0">
+                                    <i class="bi bi-check-circle me-1"></i>Активные прокси
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 id="total-proxies">{{ proxies|length }}</h3>
+                                <p class="text-primary mb-0">
+                                    <i class="bi bi-hdd-stack me-1"></i>Всего прокси
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('proxies') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-list-ul me-2"></i>Управление прокси
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // График использования ресурсов
+    const ctx = document.getElementById('resource-chart').getContext('2d');
+    const resourceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(10).fill('').map((_, i) => `${i}`),
+            datasets: [{
+                label: 'CPU (%)',
+                data: Array(10).fill(null),
+                borderColor: 'rgba(255, 99, 132, 1)',
+                tension: 0.3,
+                fill: false
+            }, {
+                label: 'Память (%)',
+                data: Array(10).fill(null),
+                borderColor: 'rgba(54, 162, 235, 1)',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            },
+            animation: {
+                duration: 0
+            }
+        }
+    });
+
+    // Обновление статистики каждые 5 секунд
+    function updateStats() {
+        fetch('/api/system_stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cpu-usage').textContent = `${data.cpu}%`;
+                document.getElementById('memory-usage').textContent = data.memory;
+                document.getElementById('disk-usage').textContent = data.disk;
+                document.getElementById('uptime').textContent = data.uptime;
+                document.getElementById('connections').textContent = data.connections;
+
+                // Обновление графика
+                const cpuValue = parseFloat(data.cpu);
+                const memoryMatch = data.memory.match(/(\d+\.\d+)%/);
+                const memoryValue = memoryMatch ? parseFloat(memoryMatch[1]) : 0;
+
+                resourceChart.data.datasets[0].data.push(cpuValue);
+                resourceChart.data.datasets[0].data.shift();
+                resourceChart.data.datasets[1].data.push(memoryValue);
+                resourceChart.data.datasets[1].data.shift();
+                resourceChart.update();
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    }
+
+    // Перезапуск прокси-сервера
+    document.getElementById('restart-proxy').addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите перезапустить прокси-сервер?')) {
+            this.disabled = true;
+            this.innerHTML = '<i class="bi bi-arrow-repeat me-2 spinner"></i>Перезапуск...';
+            
+            fetch('/api/restart_proxy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Прокси-сервер успешно перезапущен');
+                } else {
+                    alert(`Ошибка: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при перезапуске сервера');
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Перезапустить прокси-сервер';
+            });
+        }
+    });
+
+    // Генерация прокси
+    document.getElementById('generate-proxies-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-hourglass-split me-2 spinner"></i>Генерация...';
+        
+        fetch('/api/generate_proxies', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Обновляем статистику прокси
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert(`u041eu0448u0438u0431u043au0430: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при генерации прокси');
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="bi bi-plus-lg me-2"></i>Сгенерировать прокси';
+        });
+    });
+
+    // Запуск обновления статистики
+    updateStats();
+    setInterval(updateStats, 5000);
+</script>
+{% endblock %}
