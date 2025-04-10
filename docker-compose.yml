@@ -15,15 +15,87 @@ services:
     environment:
       - PROXY_COUNT=1000
       - BASE_PORT=3128
+      - TZ=Europe/Moscow
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
     ulimits:
       nofile:
-        soft: 65536
-        hard: 65536
+        soft: 32768
+        hard: 32768
     sysctls:
       - net.ipv4.ip_local_port_range=1024 65535
-      - net.ipv4.tcp_max_syn_backlog=65536
-      - net.core.somaxconn=65536
+      - net.ipv4.tcp_max_syn_backlog=8192
+      - net.core.somaxconn=8192
+      - net.ipv4.tcp_fin_timeout=15
+      - net.ipv4.tcp_keepalive_time=300
+      - net.ipv4.tcp_keepalive_intvl=60
+      - net.ipv4.tcp_keepalive_probes=3
+      - net.ipv4.tcp_tw_reuse=1
+      - net.ipv4.tcp_max_tw_buckets=16384
+      - net.core.rmem_max=8388608
+      - net.core.wmem_max=8388608
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3128"]
+      interval: 60s
+      timeout: 3s
+      retries: 2
+      start_period: 15s
+    networks:
+      - proxy-net
+  
+  # Веб-интерфейс для управления прокси-сервером
+  web-ui:
+    build: ./web
+    container_name: proxy-web-ui
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./web/templates:/app/templates
+      - ./web/static:/app/static
+    environment:
+      - PROXY_ADMIN_USER=admin
+      - PROXY_ADMIN_PASS=admin
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - PYTHONOPTIMIZE=2
+      - TELEGRAM_API_ID=26507863
+      - TELEGRAM_API_HASH=5cb6d934943762a1702333ab205d1f54
+      - TZ=Europe/Moscow
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    depends_on:
+      - proxy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 60s
+      timeout: 3s
+      retries: 2
+      start_period: 15s
     networks:
       - proxy-net
 
