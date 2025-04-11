@@ -78,7 +78,7 @@
 
 2. Запустите установщик с правами администратора:
    ```powershell
-   Set-ExecutionPolicy Bypass -Scope Process -Force; .\install-and-run-v2.ps1
+   Set-ExecutionPolicy Bypass -Scope Process -Force; .\install-WINDOWS-ONLY.ps1
    ```
 
 3. Следуйте инструкциям в меню для:
@@ -97,7 +97,7 @@
 
 2. Запустите установщик с правами root:
    ```bash
-   sudo bash install-linux.sh
+   sudo bash install-LINUX-ONLY.sh
    ```
 
 3. После установки управляйте сервером через:

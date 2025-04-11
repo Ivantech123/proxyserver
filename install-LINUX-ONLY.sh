@@ -8,9 +8,9 @@
 
 # Check if running on Linux
 if [[ "$(uname)" != "Linux" ]]; then
-    echo -e "🚫 Error: This script is for Linux systems only!"
-    echo -e "📄 For Windows use: .\install-and-run-v2.ps1 (Run as Administrator)"
-    echo -e "🔗 See instructions: https://github.com/Ivantech123/proxyserver#-установка"
+    echo -e "[ERROR] This script is for Linux systems only!"
+    echo -e "[INFO] For Windows use: .\install-WINDOWS-ONLY.ps1 (Run as Administrator)"
+    echo -e "[LINK] See instructions: https://github.com/Ivantech123/proxyserver#-установка"
     exit 1
 fi
 

@@ -51,9 +51,9 @@ if ($PSVersionTable.PSEdition -eq 'Desktop' -or ($PSVersionTable.Platform -and $
     }
 } else {
     # Not running on Windows
-    Write-Host "🚫 Ошибка: Этот скрипт предназначен только для Windows!" -ForegroundColor Red
-    Write-Host "📄 Для Linux используйте: sudo bash install-linux.sh" -ForegroundColor Yellow
-    Write-Host "🔗 Подробная инструкция: https://github.com/Ivantech123/proxyserver#-установка" -ForegroundColor Cyan
+    Write-Host "[ERR] Ошибка: Этот скрипт предназначен только для Windows!" -ForegroundColor Red
+    Write-Host "[INFO] Для Linux используйте: sudo bash install-LINUX-ONLY.sh" -ForegroundColor Yellow
+    Write-Host "[-->] Подробная инструкция: https://github.com/Ivantech123/proxyserver#-установка" -ForegroundColor Cyan
     exit 1
 }
 
@@ -67,15 +67,15 @@ function Show-Progress {
     
     # Add emoji based on activity type
     $emoji = switch -Wildcard ($Activity) {
-        "*System*"      { "🖥️" }
-        "*Dependency*"  { "📦" }
-        "*Install*"     { "⬇️" }
-        "*Docker*"      { "🐳" }
-        "*Git*"         { "📂" }
-        "*SSL*"         { "🔒" }
-        "*Server*"      { "🚀" }
-        "*Credential*" { "🔑" }
-        default         { "⚙️" }
+        "*System*"      { "[SYS]" }
+        "*Dependency*"  { "[DEP]" }
+        "*Install*"     { "[INS]" }
+        "*Docker*"      { "[DOC]" }
+        "*Git*"         { "[GIT]" }
+        "*SSL*"         { "[SSL]" }
+        "*Server*"      { "[SRV]" }
+        "*Credential*" { "[KEY]" }
+        default         { "[CFG]" }
     }
     
     Write-Progress -Activity "$emoji $Activity" -PercentComplete $PercentComplete -Status $Status
@@ -89,11 +89,11 @@ function Write-Status {
     )
     
     $emoji = switch ($Type) {
-        "Info"    { "ℹ️" }
-        "Warning" { "⚠️" }
-        "Error"   { "❌" }
-        "Success" { "✅" }
-        default   { "➡️" }
+        "Info"    { "[INFO]" }
+        "Warning" { "[WARN]" }
+        "Error"   { "[ERR]" }
+        "Success" { "[OK]" }
+        default   { "[-->]" }
     }
     
     Write-Host "$emoji $Message" -ForegroundColor $(switch ($Type) {
