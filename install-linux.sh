@@ -6,6 +6,21 @@
 # Automatic installation script for Ubuntu/Debian systems
 # This script installs all dependencies and sets up the proxy server
 
+# Check if running on Linux
+if [[ "$(uname)" != "Linux" ]]; then
+    echo -e "🚫 Error: This script is for Linux systems only!"
+    echo -e "📄 For Windows use: .\install-and-run-v2.ps1 (Run as Administrator)"
+    echo -e "🔗 See instructions: https://github.com/Ivantech123/proxyserver#-установка"
+    exit 1
+fi
+
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "🚫 Error: This script must be run as root!"
+    echo -e "📄 Please run: sudo bash install-linux.sh"
+    exit 1
+fi
+
 # Colors and formatting
 RED="\033[0;31m"
 GREEN="\033[0;32m"

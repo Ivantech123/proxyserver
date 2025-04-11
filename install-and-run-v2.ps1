@@ -33,12 +33,27 @@ function Show-Banner {
     Write-Host "" # Empty line after banner
 }
 
-# Check if running as administrator
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-    [Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "⛔ Error: This script must be run as Administrator" -ForegroundColor Red
-    Write-Host "🔑 Please right-click on PowerShell and select 'Run as Administrator'" -ForegroundColor Red
-    pause
+# Check if running on Windows
+if ($PSVersionTable.PSEdition -eq 'Desktop' -or ($PSVersionTable.Platform -and $PSVersionTable.Platform -eq 'Win32NT') -or ($PSVersionTable.PSVersion.Major -ge 6 -and $env:OS -like '*Windows*')) {
+    # Running on Windows, check for admin rights
+    try {
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+        if (-not $isAdmin) {
+            Write-Host "⛔ Error: This script must be run as Administrator" -ForegroundColor Red
+            Write-Host "🔑 Please right-click on PowerShell and select 'Run as Administrator'" -ForegroundColor Red
+            pause
+            exit 1
+        }
+    } catch {
+        # If we get here, something went wrong with the Windows-specific check
+        Write-Host "⛔ Error: Failed to check administrator privileges" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    # Not running on Windows
+    Write-Host "🚫 Ошибка: Этот скрипт предназначен только для Windows!" -ForegroundColor Red
+    Write-Host "📄 Для Linux используйте: sudo bash install-linux.sh" -ForegroundColor Yellow
+    Write-Host "🔗 Подробная инструкция: https://github.com/Ivantech123/proxyserver#-установка" -ForegroundColor Cyan
     exit 1
 }
 
