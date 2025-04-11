@@ -156,7 +156,7 @@ function Test-SystemRequirements {
     
     # Check CPU cores
     if ($systemInfo.CPUCores -lt 2) {
-        Write-Status "Warning: Less than 2 CPU cores ($($systemInfo.CPUCores) cores)" "Warning"
+        Write-Status "Warning: Less than 2 CPU cores ($($systemInfo.CPUCores))" "Warning"
     } else {
         Write-Status "CPU cores: $($systemInfo.CPUCores) - Sufficient" "Success"
     }
@@ -165,7 +165,7 @@ function Test-SystemRequirements {
     
     # Check RAM
     if ($systemInfo.TotalRAM -lt 2) {
-        Write-Status "Warning: Less than 2GB RAM ($($systemInfo.TotalRAM) GB)" "Warning"
+        Write-Status "Warning: Less than 2GB RAM ($($systemInfo.TotalRAM))" "Warning"
     } else {
         Write-Status "RAM: $($systemInfo.TotalRAM) GB - Sufficient" "Success"
     }
@@ -174,7 +174,7 @@ function Test-SystemRequirements {
     
     # Check disk space
     if ($systemInfo.FreeDiskSpace -lt 40) {
-        Write-Status "Warning: Less than 40GB free space ($($systemInfo.FreeDiskSpace) GB)" "Warning"
+        Write-Status "Warning: Less than 40GB free space ($($systemInfo.FreeDiskSpace))" "Warning"
     } else {
         Write-Status "Free disk space: $($systemInfo.FreeDiskSpace) GB - Sufficient" "Success"
     }
@@ -322,7 +322,7 @@ function Install-Dependencies {
                         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
                         
                         # Refresh environment variables
-                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
                     }
                     Show-Progress -Activity "Installing Git" -PercentComplete 50 -Status "Installing via Chocolatey..."
                     choco install git -y --force
@@ -337,7 +337,7 @@ function Install-Dependencies {
                         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
                         
                         # Refresh environment variables
-                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
                     }
                     Show-Progress -Activity "Installing OpenSSL" -PercentComplete 50 -Status "Installing via Chocolatey..."
                     choco install openssl -y --force
